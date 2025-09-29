@@ -45,7 +45,7 @@ class CustomUserChangeForm(UserChangeForm):
         fields = ("email", "nickname")
 
 
-class CustomLoginForm(AuthenticationForm):
+class CustomAuthenticationForm(AuthenticationForm):
     """ログイン用フォーム
     
     AuthenticationForm はユーザー認証（ログイン）用のフォームで、

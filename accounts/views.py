@@ -1,10 +1,11 @@
 from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render, redirect
-from .forms import CustomUserCreationForm
+from django.views.generic.edit import FormView
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy
+from .forms import CustomUserCreationForm, CustomAuthenticationForm
 
 
 def registration_view(request: HttpRequest) -> HttpResponse:
@@ -59,6 +60,35 @@ def registration_view(request: HttpRequest) -> HttpResponse:
     return render(request, "accounts/registration.html", {"form": form})
 
 
+class RegistrationView(FormView):
+    """
+    ユーザー登録（サインアップ）ビュー ※このパターンの場合は CBV にしてもコード量はあまり変わらない
+
+    - GET: 空のフォームを表示
+    - POST: フォーム入力の検証とユーザー登録・自動ログインを実施
+    """
+
+    template_name = "accounts/registration.html"
+    form_class = CustomUserCreationForm
+    success_url = reverse_lazy("accounts:welcome_view")
+
+    def form_valid(self, form: CustomUserCreationForm) -> HttpResponse:
+        """フォームが有効な場合の処理"""
+        user = form.save()
+        raw_password = form.cleaned_data.get("password1")
+        user = authenticate(
+            self.request,
+            username=user.email,
+            password=raw_password
+        )
+        if user is not None:
+            login(self.request, user)
+            return super().form_valid(form)
+        else:
+            form.add_error(None, "ログイン処理に失敗しました。管理者にお問い合わせください。")
+            return self.form_invalid(form)
+
+
 class CustomLoginView(LoginView):
     """
     カスタムログインビュー
@@ -70,6 +100,7 @@ class CustomLoginView(LoginView):
     """
     template_name = "accounts/login.html"
     redirect_authenticated_user = True
+    form_class = CustomAuthenticationForm
 
 
 class CustomLogoutView(LogoutView):
